@@ -1,6 +1,8 @@
 import random
 
 class Cube:
+    SIZE = 5
+
     def __init__(self, size = 5):
         self.size = size
         self.total_elements = size ** 3
@@ -44,7 +46,7 @@ class Cube:
     
     @staticmethod
     def calculate_magic_constant(size: int = 5) -> int:
-        # Formula for the magic constant of an n x n magic square/cube
+        # Formula for the magic constant of an n x n magic cube
         return size * (size**3 + 1) // 2
 
     def sum_column(self, i : int, k : int) -> int:
