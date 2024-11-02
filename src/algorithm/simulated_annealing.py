@@ -9,10 +9,12 @@ Tasks:
 6. Frekuensi ‘stuck’ di local optima
 '''
 
+# Import dependencies library from source
 from ...src.core.cube import Cube
 from ...src.core.algorithm import Algorithm
 from ...src.utils.cube_utility import CubeUtility
 
+# Import other libraries
 import time
 import random
 import numpy as np
@@ -20,6 +22,7 @@ import matplotlib.pyplot as plt
 
 class SimulatedAnnealing(Algorithm):
     def __init__(self, cube):
+        # Refering to the parent class
         super().__init__()
         self.cube = cube
         self.delta = 0
@@ -29,30 +32,39 @@ class SimulatedAnnealing(Algorithm):
         self.local_optima_stuck_count = 0
         self.stuck_threshold = 100
 
+    # Initialize cubes
     def initializeCube(self) -> Cube:
         return Cube()
 
+    # Get random cube
     def randomCube(self):
         return self.cube.get_cube()
 
+    # Get random float between 0 and 1
     def randomFloat(self)-> float:
         return random.uniform(0,1)
 
+    # Mapping each iteration into temperature
     def schedule(self, iteration)-> float:
         return max(0.01, np.exp(-0.001 * iteration))
 
+    # Generate random float between 0 and 1
     def randomProbability(self)-> float:
         return random.uniform(0,1)
 
+    # Evaluate cube fitness value
     def evaluateCube(self, cube):
         return cube.evaluate_fitness()
 
+    # Randomize cube for create neighbor
     def randomMove(self, cube):
         return CubeUtility().random_neighbor(cube)
 
+    # Acceptance probability
     def AcceptanceProbability(self, delta, temperature) -> float:
         return np.exp(-delta/temperature)
 
+    # Core loop for running simulated annealing
     def solve(self) -> Cube:
         current_cube = self.initializeCube()
         current_fitness = self.evaluateCube(current_cube)
@@ -78,7 +90,7 @@ class SimulatedAnnealing(Algorithm):
                     current_cube, current_fitness = neighbor, neighbor_fitness
                     no_improvement_steps = 0
                 else:
-                    current_cube, current_fitness = current_cube, current_fitnes
+                    current_cube, current_fitness = current_cube, current_fitness
                     no_improvement_steps += 1
 
             if no_improvement_steps >= self.stuck_threshold:
@@ -107,6 +119,7 @@ class SimulatedAnnealing(Algorithm):
 
         return current_cube
 
+    # Plotting the result
     def plotResults(self):
         # Plot objective function values
         plt.figure(figsize=(12, 6))
@@ -125,3 +138,9 @@ class SimulatedAnnealing(Algorithm):
         plt.title('Temperature over Iterations')
         plt.legend()
         plt.show()
+
+# Contoh penggunaan
+sa = SimulatedAnnealing(cube=Cube())
+cube = sa.solve()
+print(cube)
+print(cube.evaluate_fitness())

@@ -15,7 +15,6 @@ from ...src.utils.cube_utility import CubeUtility
 
 import time
 import random
-import numpy as np
 import matplotlib.pyplot as plt
 
 class HillClimbingSidewaysMove(Algorithm):
@@ -43,7 +42,7 @@ class HillClimbingSidewaysMove(Algorithm):
     
     def solve(self) -> Cube:
         current_cube = self.initializeCube()
-        current_fitnes = self.evaluateCube(current_cube)
+        current_fitness = self.evaluateCube(current_cube)
         start_time = time.time()
 
         iteration = 0
@@ -55,7 +54,7 @@ class HillClimbingSidewaysMove(Algorithm):
 
             if neighbor_fitness > current_fitness:
                 current_cube = neighbor
-                current_fitnes = neighbor_fitness
+                current_fitness = neighbor_fitness
                 sideways_move = 0
             else:
                 sideways_move += 1
@@ -94,3 +93,9 @@ class HillClimbingSidewaysMove(Algorithm):
         plt.title('Objective Function Value over Iterations')
         plt.legend()
         plt.show()
+
+# Contoh penggunaan
+hcsm = HillClimbingSidewaysMove(cube=Cube())
+cube = hcsm.solve()
+print(cube)
+print(cube.evaluate_fitness())
