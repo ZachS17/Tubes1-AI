@@ -1,12 +1,13 @@
 import random
+from collections import Counter
 
 class Cube:
     SIZE = 5
 
-    def __init__(self, size = 5):
-        self.size = size
-        self.total_elements = size ** 3
-        self.magic_constant = Cube.calculate_magic_constant(size)
+    def __init__(self):
+        self.size = Cube.SIZE
+        self.total_elements = Cube.SIZE ** 3
+        self.magic_constant = Cube.calculate_magic_constant(Cube.SIZE)
         self.__cube = self.initialize_cube()
     
     def initialize_cube(self):
@@ -43,6 +44,30 @@ class Cube:
     
     def get_magic_constant(self):
         return self.magic_constant
+    
+    def check_duplicates(self):
+        # Flatten the 3D cube into a 1D list
+        flattened_cube = [self.__cube[layer][row][col] 
+                          for layer in range(Cube.SIZE) 
+                          for row in range(Cube.SIZE) 
+                          for col in range(Cube.SIZE)]
+        
+        # Use Counter to count the occurrences of each element
+        counts = Counter(flattened_cube)
+        
+        # Prepare the result to show elements with duplicates
+        duplicates_info = {value: count for value, count in counts.items() if count > 1}
+        
+        # Display the results
+        if duplicates_info:
+            print("Duplicates found:")
+            for value, count in duplicates_info.items():
+                print(f"Element {value} appears {count} times.")
+            print(f"Total elements with duplicates: {len(duplicates_info)}")
+        else:
+            print("No duplicates, the cube is valid.")
+
+        return duplicates_info
     
     @staticmethod
     def calculate_magic_constant(size: int = 5) -> int:

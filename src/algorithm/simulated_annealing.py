@@ -1,36 +1,22 @@
-'''
-Objective : Menyelesaikan permasalahan Magic Cube
-Tasks:
-1. State awal dan akhir dari kubus
-2. Nilai objective function akhir yang dicapai
-3. Plot nilai objective function terhadap banyak iterasi yang telah dilewati
-4. Durasi proses pencarian
-5. Plot eET terhadap banyak iterasi yang telah dilewati
-6. Frekuensi ‘stuck’ di local optima
-'''
-
 # Import dependencies library from source
-from ...src.core.cube import Cube
-from ...src.core.algorithm import Algorithm
-from ...src.utils.cube_utility import CubeUtility
+from src.core.cube import Cube
+from src.core.algorithm import Algorithm
+from src.utils.cube_utility import CubeUtility
 
 # Import other libraries
 import time
 import random
 import numpy as np
-import matplotlib.pyplot as plt
 
 class SimulatedAnnealing(Algorithm):
-    def __init__(self, cube):
-        # Refering to the parent class
+    def __init__(self):
+        # Referring to the parent class
         super().__init__()
-        self.cube = cube
         self.delta = 0
-        self.iterations = []
-        self.fitness_values = []
         self.temperatures = []
         self.local_optima_stuck_count = 0
         self.stuck_threshold = 100
+        self.max_iterations = 1000  # Maximum number of iterations
 
     # Initialize cubes
     def initializeCube(self) -> Cube:
@@ -41,16 +27,16 @@ class SimulatedAnnealing(Algorithm):
         return self.cube.get_cube()
 
     # Get random float between 0 and 1
-    def randomFloat(self)-> float:
-        return random.uniform(0,1)
+    def randomFloat(self) -> float:
+        return random.uniform(0, 1)
 
     # Mapping each iteration into temperature
-    def schedule(self, iteration)-> float:
+    def schedule(self, iteration) -> float:
         return max(0.01, np.exp(-0.001 * iteration))
 
     # Generate random float between 0 and 1
-    def randomProbability(self)-> float:
-        return random.uniform(0,1)
+    def randomProbability(self) -> float:
+        return random.uniform(0, 1)
 
     # Evaluate cube fitness value
     def evaluateCube(self, cube):
@@ -62,10 +48,10 @@ class SimulatedAnnealing(Algorithm):
 
     # Acceptance probability
     def AcceptanceProbability(self, delta, temperature) -> float:
-        return np.exp(-delta/temperature)
+        return np.exp(-delta / temperature)
 
     # Core loop for running simulated annealing
-    def solve(self) -> Cube:
+    def solve(self) -> Algorithm:
         current_cube = self.initializeCube()
         current_fitness = self.evaluateCube(current_cube)
         start_time = time.time()
@@ -74,73 +60,51 @@ class SimulatedAnnealing(Algorithm):
         temperature = self.schedule(iteration)
         no_improvement_steps = 0
 
-        while True:
-            if temperature == 0:
-                return current_cube
+        self.iterations.append(current_cube)
+        self.fitness_values.append(current_fitness)
 
+        while iteration < self.max_iterations and temperature > 0.01:
             neighbor = self.randomMove(current_cube)
             neighbor_fitness = self.evaluateCube(neighbor)
             delta = neighbor_fitness - current_fitness
 
             if delta > 0:
+                # Accept the new neighbor if it's better
                 current_cube, current_fitness = neighbor, neighbor_fitness
                 no_improvement_steps = 0
             else:
+                # Accept with probability if it's worse
                 if self.randomProbability() < self.AcceptanceProbability(delta, temperature):
                     current_cube, current_fitness = neighbor, neighbor_fitness
                     no_improvement_steps = 0
                 else:
-                    current_cube, current_fitness = current_cube, current_fitness
                     no_improvement_steps += 1
 
+            # Check for local optimum
             if no_improvement_steps >= self.stuck_threshold:
                 self.local_optima_stuck_count += 1
-                no_improvement_steps = 0
+                no_improvement_steps = 0  # Reset counter after counting
 
+            # Update temperature and log values
             iteration += 1
             temperature = self.schedule(iteration)
 
-            self.iterations.append(iteration)
+            self.iterations.append(current_cube)
             self.fitness_values.append(current_fitness)
             self.temperatures.append(temperature)
 
-            end_time = time.time()
-            duration = end_time - start_time
+        # Duration
+        self.duration = time.time() - start_time
 
-            if duration > 1000:
-                print(f"Objective Value: {current_fitness}")
-                print(f"Duration: {duration} seconds")
-                break
+        print("Local Optimum Stuck:",self.local_optima_stuck_count)
 
-        print(f"Final Objective Value: {current_fitness}")
-        print(f"Duration: {duration} seconds")
+        return self
 
-        self.plotResults()
-
-        return current_cube
-
-    # Plotting the result
-    def plotResults(self):
-        # Plot objective function values
-        plt.figure(figsize=(12, 6))
-        plt.plot(self.iterations, self.fitness_values, label='Objective Function')
-        plt.xlabel('Iteration')
-        plt.ylabel('Objective Function Value')
-        plt.title('Objective Function Value over Iterations')
-        plt.legend()
-        plt.show()
-
-        # Plot temperature schedule
-        plt.figure(figsize=(12, 6))
-        plt.plot(self.iterations, self.temperatures, label='Temperature', color='orange')
-        plt.xlabel('Iteration')
-        plt.ylabel('Temperature')
-        plt.title('Temperature over Iterations')
-        plt.legend()
-        plt.show()
-
-# Contoh penggunaan
-sa = SimulatedAnnealing(cube=Cube())
-cube = sa.solve()
-print(cube)
-print(cube.evaluate_fitness())
+# # Contoh penggunaan
+# sa = SimulatedAnnealing()
+# saresult = sa.solve()
+# print("Final Cube:", saresult)
+# print("Final Fitness:", saresult.cube.evaluate_fitness())
+# print("Number of Iterations:", len(saresult.fitness_values)-1)
+# print("Local Optima Stuck Count:", sa.local_optima_stuck_count)
+# print("Duration:", sa.duration)

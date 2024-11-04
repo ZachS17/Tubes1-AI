@@ -1,41 +1,36 @@
-from ...src.core.cube import Cube
-from ...src.core.algorithm import Algorithm
+from src.core.cube import Cube
+from src.core.algorithm import Algorithm
 
+import time
 import random
 from typing import Tuple
 
 class GeneticAlgorithm(Algorithm):
-    def __init__(self, population_size : int):
+    def __init__(self, population_size : int, number_of_iteration):
+        super().__init__()
         self.__population_size = population_size
-        self.__population = self.initialize_population(population_size)
+        self.initialize_population()
+        self.__num_iteration = number_of_iteration
     
     # Initialize random cubes
     def initialize_population(self):
-        return self.sort_fitness_value([Cube() for _ in range(Cube.SIZE)])
+        self.__population = [Cube() for _ in range(self.__population_size)]
+        self.sort_fitness_value()
     
     # Crossover by random point
     def crossover(self, parent1 : Cube, parent2 : Cube):
-        # Get the random crossover point
-        crossover_point = self.get_random_point_indexes()
 
-        layer = crossover_point[0]
-        row = crossover_point[1]
-        column = crossover_point[2]
-
-        # Crossover process
+        # Get a random layer index to swap from
+        layer_to_swap = random.randint(0, Cube.SIZE - 1)
         
-        # Swap values for the specific layer
-        for j in range (row, Cube.SIZE):
-            for k in range (column, Cube.SIZE):
-                parent1[layer][j][k], parent2[layer][j][k] = parent2[layer][j][j], parent1[layer][j][k]
-
-        # Continue swap for next layers
-        for i in range (layer+1, Cube.SIZE):
-            for j in range (Cube.SIZE-1):
-                for k in range (Cube.SIZE-1):
-                    parent1[i][j][k], parent2[i][j][k] = parent2[i][j][j], parent1[i][j][k]
+        # Swap entire layers between parents
+        for row in range(Cube.SIZE):
+            for col in range(Cube.SIZE):
+                # Swap the elements at the same position in the chosen layer
+                parent1.get_cube()[layer_to_swap][row][col], parent2.get_cube()[layer_to_swap][row][col] = \
+                    parent2.get_cube()[layer_to_swap][row][col], parent1.get_cube()[layer_to_swap][row][col]
     
-    def mutate(self, individual):
+    def mutate(self, individual : Cube, ):
         # # Option1
         # Changes cells with any random number (most likely leads to duplicate numbers)
         # # Get the random crossover point
@@ -52,27 +47,28 @@ class GeneticAlgorithm(Algorithm):
         # # Swap values randomly hence no duplicates (heuristic, is it okay ??)
 
         # Try 3 swap for more variations
-        for i in range (3):
+        for _ in range(3):
             mutation_point1 = self.get_random_point_indexes()
-
-            layer1 = mutation_point1[0]
-            row1 = mutation_point1[1]
-            column1 = mutation_point1[2]
-
             mutation_point2 = self.get_random_point_indexes()
 
-            layer2 = mutation_point2[0]
-            row2 = mutation_point2[1]
-            column2 = mutation_point2[2]
+            # Swap only if they are not the same
+            if mutation_point1 != mutation_point2:
+                layer1, row1, col1 = mutation_point1
+                layer2, row2, col2 = mutation_point2
 
-            individual[layer1][row1][column1], individual[layer2][row2][column2] = individual[layer2][row2][column2], individual[layer1][row1][column1]
+                # Swap two random positions within the cube
+                individual.get_cube()[layer1][row1][col1], individual.get_cube()[layer2][row2][col2] = \
+                    individual.get_cube()[layer2][row2][col2], individual.get_cube()[layer1][row1][col1]
+                
+    def print_point_indexes(point : Tuple[int,int,int]):
+        print("(" + str(point[0]) + "," + str(point[1]) + "," + str(point[2]) + ")")
 
     def get_random_point_indexes(self) -> Tuple[int,int,int]:
-        random_point = random.randint(0, Cube.SIZE-1)
+        random_point = random.randint(0, self.__population[0].get_total_elements()-1)
 
         # Convert mutation point into indexes
         layer = random_point // (Cube.SIZE ** 2)
-        row = (random_point % Cube.SIZE) // (Cube.SIZE)
+        row = (random_point % (Cube.SIZE ** 2)) // (Cube.SIZE)
         column = (random_point % Cube.SIZE) % Cube.SIZE
 
         return (layer, row, column)
@@ -84,13 +80,18 @@ class GeneticAlgorithm(Algorithm):
 
         new_population = []
 
-        for j in range (self.__population_size):
+        for _ in range (self.__population_size):
 
             # Total fitness
             total_fitness = sum(fitness_value_array)
 
-            # Probabilities
-            probabilities = [f / total_fitness for f in fitness_value_array]
+            # Handle case when total_fitness is 0
+            if total_fitness == 0:
+                # Assign equal probabilities if total_fitness is 0
+                probabilities = [1 / self.__population_size] * self.__population_size
+            else:
+                # Probabilities
+                probabilities = [f / total_fitness for f in fitness_value_array]
 
             # Cumulative
             cumulative_probabilities = []
@@ -114,19 +115,30 @@ class GeneticAlgorithm(Algorithm):
         self.__population = new_population
 
     def sort_fitness_value(self):
-        temp_population = sorted(self.__population, key=self.__population[0].evaluate_fitness())
+        temp_population = sorted(self.__population, key=lambda individual: individual.evaluate_fitness())
+        self.__population = temp_population
+
+    def print_fitness_values(self):
+        for i in range (self.__population_size):
+            print("Fitness Cube ke-" + str(i) + ": " + str(self.__population[i].evaluate_fitness()) + "\n")
 
     # Core loop for running genetic algorithm
-    def solve(self, population_size, num_iteration):
+    def solve(self):
+        current_cube = self.__population[self.__population_size-1]
+        current_fitness = current_cube.evaluate_fitness()
+        self.iterations.append(current_cube)
+        self.fitness_values.append(current_fitness)
+        start_time = time.time()
         # Calculate number of crossover process
-        num_crossover = population_size // 2
+        num_crossover = self.__population_size // 2
         # Iteration
-        for i in range (num_iteration):
+        for _ in range (self.__num_iteration):
             # Even or odd (elitism)
             for j in range (0, num_crossover, 2):
                 self.crossover(self.__population[j],self.__population[j+1])
+
             # Mutation
-            for k in range (population_size):
+            for k in range (self.__population_size):
                 # Mutation rate 10%
                 mutation_number = random.randint(1,10)
                 # 10% chance
@@ -137,6 +149,21 @@ class GeneticAlgorithm(Algorithm):
             # Ordering (highest value -> elite, unchanged)
             self.sort_fitness_value()
 
-# Contoh penggunaan
-ga = GeneticAlgorithm(population_size=10)
-ga.solve(population_size=10, num_iteration=100)
+            current_cube = self.__population[self.__population_size-1]
+            current_fitness = current_cube.evaluate_fitness()
+            self.iterations.append(current_cube)
+            self.fitness_values.append(current_fitness)
+
+        end_time = time.time()
+        duration = end_time - start_time
+        self.duration = duration
+
+        return self
+
+# # Contoh penggunaan
+# ga = GeneticAlgorithm(population_size=10, number_of_iteration=10)
+# garesult = ga.solve()
+# print("Final Cube:", garesult)
+# print("Final Fitness:", garesult.cube.evaluate_fitness())
+# print("Number of Iterations:",str(len(garesult.iterations)-1))
+# print("Duration: ",garesult.duration)
